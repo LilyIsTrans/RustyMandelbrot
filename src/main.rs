@@ -1,7 +1,7 @@
-use num::complex::Complex;
+
 mod interface;
-type Point = Complex<f64>;
+mod window;
 
 fn main() {
-    println!("Hello, world!");
+    window::window_main();
 }
