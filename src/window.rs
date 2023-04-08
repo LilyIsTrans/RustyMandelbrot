@@ -1,11 +1,16 @@
+use image::GenericImageView;
 use softbuffer::GraphicsContext;
 use winit::{
-    event::{Event, WindowEvent},
+    event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta},
     event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    window::WindowBuilder, dpi::PhysicalPosition,
 };
 
+use crate::interface::{Frame, self};
+
 pub fn window_main() {
+    let mut frame: Frame = Frame::default();
+    let mut last_known_cursor_position: Option<PhysicalPosition<f64>> = None;
     let event_loop = EventLoop::new();
     let window = match WindowBuilder::new().build(&event_loop) 
     {
@@ -27,26 +32,55 @@ pub fn window_main() {
                     let size = window.inner_size();
                     (size.width, size.height)
                 };
-                let buffer = (0..((width * height) as usize))
-                    .map(|index| {
-                        let y = index / (width as usize);
-                        let x = index % (width as usize);
-                        let red = x % 255;
-                        let green = y % 255;
-                        let blue = (x + y) % 255;
+                frame.change_window_size(width, height);
+                update_frame(&mut frame, &mut graphics_context);
+            },
+            Event::WindowEvent { window_id, event } if window_id == window.id() => {
+                match event {
+                    WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit;
+                    },
+                    WindowEvent::CursorLeft { device_id: _ } => {
+                        last_known_cursor_position = None;
+                    },
+                    WindowEvent::CursorMoved { device_id: _, position, ..} => {
+                        last_known_cursor_position = Some(position);
+                    },
+                    _ => {},
+                }
+                
+            },
+            Event::DeviceEvent { device_id: _, event } => {
+                match event {
+                    DeviceEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, scroll) } => {
+                        let zoom_factor = 1f64 - (scroll as f64 * 0.1f64);
+                        if last_known_cursor_position.is_some() {
+                            frame.viewport.zoom(frame.point_from_pixel(last_known_cursor_position.unwrap().x, last_known_cursor_position.unwrap().y), zoom_factor);
+                        };
+                        update_frame(&mut frame, &mut graphics_context);
+                    }
 
-                        let color = blue | (green << 8) | (red << 16);
-
-                        color as u32
-                    })
-                    .collect::<Vec<_>>();
-
-                graphics_context.set_buffer(&buffer, width as u16, height as u16);
+                    _ => {},
+                }
             }
-            Event::WindowEvent { window_id, event: WindowEvent::CloseRequested } if window_id == window.id() => {
-                *control_flow = ControlFlow::Exit;
-            }
-            _ => {}
+            
+            
+            _ => {},
         }
     });
+}
+
+fn update_frame(frame: &mut Frame, graphics_context: &mut GraphicsContext) {
+    let width = frame.buffer.width();
+    let height = frame.buffer.height();
+    frame.render();
+    let buffer = (0..((width * height) as usize))
+        .map(|index| {
+            let y = index / (width as usize);
+            let x = index % (width as usize);
+            interface::hdr_to_display_colour(frame.buffer.get_pixel(x as u32, y as u32))
+        })
+        .collect::<Vec<_>>();
+
+    graphics_context.set_buffer(&buffer, width as u16, height as u16);
 }

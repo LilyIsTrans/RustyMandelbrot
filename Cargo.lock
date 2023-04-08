@@ -1128,6 +1128,7 @@ dependencies = [
  "image",
  "nalgebra",
  "num",
+ "rayon",
  "softbuffer",
  "winit",
 ]
