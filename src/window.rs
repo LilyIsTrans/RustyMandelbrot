@@ -1,4 +1,3 @@
-use image::GenericImageView;
 use softbuffer::GraphicsContext;
 use winit::{
     event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta},
