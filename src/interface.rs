@@ -1,8 +1,10 @@
 use num::complex::Complex;
 use image::{Rgb32FImage, Rgb};
+use ndarray::{Array2, Shape, ShapeBuilder};
 pub type Point = Complex<f64>;
 pub type HDRColour = Rgb<f32>;
 pub type DisplayColour = u32;
+
 use rayon::prelude::*;
 
 pub fn hdr_to_display_colour(colour: &HDRColour) -> DisplayColour
@@ -24,7 +26,8 @@ pub struct Viewport {
 
 pub struct Frame {
     pub viewport: Viewport,
-    pub buffer: Rgb32FImage
+    pub buffer: Rgb32FImage,
+    iter_buf: Array2<usize>
 }
 
 
@@ -73,11 +76,11 @@ fn compute_escape_time(point: Point) -> EscapeTime {
 
 impl Frame {
     pub fn default() -> Frame {
-        Frame { viewport: (Viewport::default()), buffer: (Rgb32FImage::new(1600, 900)) }
+        Frame { viewport: (Viewport::default()), buffer: (Rgb32FImage::new(1600, 900)), iter_buf: (Array2::default([1600, 900]))}
     }
 
     pub fn new(width: u32, height: u32) -> Frame {
-        Frame { viewport: (Viewport::default()), buffer: (Rgb32FImage::new(width, height)) }
+        Frame { viewport: (Viewport::default()), buffer: (Rgb32FImage::new(width, height)), iter_buf: (Array2::) }
     }
 
     pub fn change_window_size(&mut self, width: u32, height: u32) {

@@ -9,6 +9,7 @@ repository = "https://github.com/Rilazy/RustyMandelbrot"
 [dependencies]
 num = "*"
 nalgebra = "*"
+ndarray = "*"
 image = "*"
 winit = "*"
 softbuffer = "*"

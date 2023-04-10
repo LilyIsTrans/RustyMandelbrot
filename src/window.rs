@@ -1,15 +1,17 @@
 use softbuffer::GraphicsContext;
 use winit::{
-    event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta},
+    event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, KeyboardInput, VirtualKeyCode, ElementState},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder, dpi::PhysicalPosition,
+    
 };
 
-use crate::interface::{Frame, self};
+use crate::interface::{Frame, self, Viewport};
 
 pub fn window_main() {
     let mut frame: Frame = Frame::default();
     let mut last_known_cursor_position: Option<PhysicalPosition<f64>> = None;
+    let mut ctrl_pressed: bool = false;
     let event_loop = EventLoop::new();
     let window = match WindowBuilder::new().build(&event_loop) 
     {
@@ -45,25 +47,44 @@ pub fn window_main() {
                     WindowEvent::CursorMoved { device_id: _, position, ..} => {
                         last_known_cursor_position = Some(position);
                     },
+                    WindowEvent::ModifiersChanged(modifiers) => {
+                        ctrl_pressed = modifiers.ctrl();
+                    },
+                    WindowEvent::MouseWheel { device_id: _, delta: MouseScrollDelta::LineDelta(scroll, _), phase: _, modifiers: _ } => {
+                        if last_known_cursor_position.is_some() {
+                            let zoom_factor = 1f64 - (scroll as f64 * 0.1f64);
+                            frame.viewport.zoom(frame.point_from_pixel(last_known_cursor_position.unwrap().x, last_known_cursor_position.unwrap().y), zoom_factor);
+                        };
+                        update_frame(&mut frame, &mut graphics_context);
+                    },
+                    WindowEvent::KeyboardInput { device_id: _, input, is_synthetic: _ } => {
+                        if input.virtual_keycode.is_some() && input.state == ElementState::Pressed {
+                            match input.virtual_keycode.unwrap() {
+                                VirtualKeyCode::Equals => {
+                                    if last_known_cursor_position.is_some() {
+                                        frame.viewport.zoom(frame.point_from_pixel(last_known_cursor_position.unwrap().x, last_known_cursor_position.unwrap().y), 0.9f64);
+                                        update_frame(&mut frame, &mut graphics_context);
+                                    }
+                                },
+                                VirtualKeyCode::Minus => {
+                                    if last_known_cursor_position.is_some() {
+                                        frame.viewport.zoom(frame.point_from_pixel(last_known_cursor_position.unwrap().x, last_known_cursor_position.unwrap().y), 1.1f64);
+                                        update_frame(&mut frame, &mut graphics_context);
+                                    }
+                                },
+                                VirtualKeyCode::Home => {
+                                    frame.viewport = Viewport::default();
+                                    update_frame(&mut frame, &mut graphics_context);
+                                },
+
+                                _ => {}
+                            }
+                        }
+                    },
                     _ => {},
                 }
                 
             },
-            Event::DeviceEvent { device_id: _, event } => {
-                match event {
-                    DeviceEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, scroll) } => {
-                        let zoom_factor = 1f64 - (scroll as f64 * 0.1f64);
-                        if last_known_cursor_position.is_some() {
-                            frame.viewport.zoom(frame.point_from_pixel(last_known_cursor_position.unwrap().x, last_known_cursor_position.unwrap().y), zoom_factor);
-                        };
-                        update_frame(&mut frame, &mut graphics_context);
-                    }
-
-                    _ => {},
-                }
-            }
-            
-            
             _ => {},
         }
     });
