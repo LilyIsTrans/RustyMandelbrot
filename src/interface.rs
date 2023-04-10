@@ -27,11 +27,6 @@ pub struct Frame {
     pub buffer: Rgb32FImage
 }
 
-
-pub trait Renderer {
-    fn render_to_frame(&self, frame: &mut Frame);
-}
-
 impl Viewport {
     pub fn default() -> Viewport {
         Viewport { center: (Point {re: 0f64, im: 0f64}), radius: (5.0f64) }
